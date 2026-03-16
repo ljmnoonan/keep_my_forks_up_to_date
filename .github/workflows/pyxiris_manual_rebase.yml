@@ -1,0 +1,50 @@
+name: Pyxiris Manual Rebase
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo_name:
+        description: 'Name of the Pyxiris repository to rebase (e.g., odoo)'
+        required: true
+        type: string
+      branch:
+        description: 'Branch to rebase (e.g., 19.0-feature-xyz)'
+        required: true
+        type: string
+      upstream-repo-url:
+        description: 'Upstream repository URL (e.g., https://github.com/odoo/odoo.git)'
+        required: true
+        type: string
+      upstream-branch:
+        description: 'Upstream branch to rebase from (e.g., 19.0)'
+        required: true
+        type: string
+      fetch-depth:
+        description: 'Number of commits to fetch'
+        required: true
+        default: '200'
+        type: string
+      git_username:
+        description: 'Git username for commits'
+        required: false
+        type: string
+      git_email:
+        description: 'Git email for commits'
+        required: false
+        type: string
+
+jobs:
+  call-rebase:
+    uses: ./.github/workflows/rebase.yml
+    secrets:
+      repo_pat: ${{ secrets.PYXIRIS_FORK_UPDATE_PAT }}
+      gpg_priv_key: ${{ secrets.GPG_PRIVATE_KEY }}
+      gpg_pass: ${{ secrets.GPG_PASSPHRASE }}
+      git_email: ${{ inputs.git_email || secrets.GIT_USER_EMAIL }}
+    with:
+      repository: Pyxiris/${{ inputs.repo_name }}
+      branch: ${{ inputs.branch }}
+      upstream-repo-url: ${{ inputs.upstream-repo-url }}
+      upstream-branch: ${{ inputs.upstream-branch }}
+      fetch-depth: ${{ inputs.fetch-depth || '200' }}
+      git_username: ${{ inputs.git_username || vars.GIT_USERNAME }}

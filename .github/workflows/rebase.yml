@@ -1,0 +1,78 @@
+name: Rebase Core Workflow
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+      upstream-repo-url:
+        required: true
+        type: string
+      upstream-branch:
+        required: true
+        type: string
+      fetch-depth:
+        required: false
+        default: '200'
+        type: string
+      git_username:
+        required: true
+        type: string
+    secrets:
+      repo_pat:
+        required: true
+      gpg_priv_key:
+        required: true
+      gpg_pass:
+        required: true
+      git_email:
+        required: true
+
+jobs:
+  rebase-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.branch }}
+          fetch-depth: ${{ inputs.fetch-depth }}
+          token: ${{ secrets.repo_pat }}
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v7
+        with:
+          gpg_private_key: ${{ secrets.gpg_priv_key }}
+          passphrase: ${{ secrets.gpg_pass }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          git_tag_gpgsign: true
+
+      - name: Configure and Rebase
+        env:
+          BRANCH: ${{ inputs.branch }}
+          UPSTREAM_REPO_URL: ${{ inputs.upstream-repo-url }}
+          UPSTREAM_BRANCH: ${{ inputs.upstream-branch }}
+          FETCH_DEPTH: ${{ inputs.fetch-depth }}
+          GIT_USERNAME: ${{ inputs.git_username }}
+        run: |
+          git config --global user.name $GIT_USERNAME
+          git config --global user.email "${{ secrets.git_email }}"
+
+          git remote add upstream $UPSTREAM_REPO_URL
+          git fetch upstream $UPSTREAM_BRANCH --depth=$FETCH_DEPTH
+
+          git checkout $BRANCH
+
+          if git merge-base --is-ancestor upstream/$UPSTREAM_BRANCH HEAD; then
+            echo "No new commits from upstream. Skipping rebase."
+            exit 0
+          fi
+
+          git rebase upstream/$UPSTREAM_BRANCH
+          git push --force-with-lease origin $BRANCH
