@@ -1,0 +1,36 @@
+name: Pyxiris odoo/19.0-always_handle_notifications_in_odoo
+
+on:
+  schedule:
+    - cron: '23 1 * * *'
+  workflow_dispatch:
+    inputs:
+      fetch-depth:
+        description: 'Number of commits to fetch'
+        required: false
+        default: '200'
+        type: string
+      git_username:
+        description: 'Git username for commits'
+        required: false
+        type: string
+      git_email:
+        description: 'Git email for commits'
+        required: false
+        type: string
+
+jobs:
+  call-rebase:
+    uses: ./.github/workflows/rebase.yml
+    secrets:
+      repo_pat: ${{ secrets.PYXIRIS_FORK_UPDATE_PAT }}
+      gpg_priv_key: ${{ secrets.GPG_PRIVATE_KEY }}
+      gpg_pass: ${{ secrets.GPG_PASSPHRASE }}
+      git_email: ${{ inputs.git_email || secrets.GIT_USER_EMAIL }}
+    with:
+      repository: 'Pyxiris/odoo'
+      branch: '19.0-always_handle_notifications_in_odoo'
+      upstream-repo-url: https://github.com/odoo/odoo.git
+      upstream-branch: '19.0'
+      fetch-depth: ${{ inputs.fetch-depth || '200' }}
+      git_username: ${{ inputs.git_username || vars.GIT_USERNAME }}
